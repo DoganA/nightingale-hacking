@@ -109,6 +109,10 @@ if test "$enable_nightly" == "yes"; then
 fi
 AC_SUBST(SONGBIRD_NIGHTLY)
 
+if test "$SONGBIRD_OFFICIAL$SONGBIRD_NIGHTLY" == 1; then
+  AC_CHECK_PROG(GIT, git, git)
+fi
+
 #
 #  Check for --enable-tests
 #
@@ -272,8 +276,8 @@ case "$target" in
       powerpc* | ppc)
         SB_ARCH="ppc"
       ;;
-      *i*86*)
-        SB_ARCH="$target_cpu"
+      *i*86* | x86_64)
+        SB_ARCH="i686"
       ;;
       *)
         AC_MSG_ERROR(Unsupported architecture)
@@ -610,19 +614,19 @@ case "$SB_PLATFORM" in
     if test -z "$RC"; then AC_MSG_ERROR(Rc not found); fi
     AC_CHECK_PROG(MIDL, midl, midl)
     if test -z "$MIDL"; then AC_MSG_ERROR(Midl not found); fi
-    AC_CHECK_PROG(REBASE, rebase, rebase)
+    AC_CHECK_PROG(REBASE, rebase, rebase, "EDITBIN /DYNAMICBASE:no /REBASE:")
     if test -z "$REBASE"; then AC_MSG_ERROR(Rebase not found); fi
 
     # Check midl version
     changequote(,)
     _MIDL_VER_FILTER='s|.* \([0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*|\1|p'
     changequote([,])
-    
+
     _MIDL_FULL_VERSION=`"${MIDL}" -v 2>&1 | sed -ne "$_MIDL_VER_FILTER"`
     _MIDL_MAJOR_VERSION=`echo ${_MIDL_FULL_VERSION} | $AWK -F\. '{ print $1 }'`
     _MIDL_MINOR_VERSION=`echo ${_MIDL_FULL_VERSION} | $AWK -F\. '{ print $2 }'`
     _MIDL_REV_VERSION=`echo ${_MIDL_FULL_VERSION} | $AWK -F\. '{ print $3 }'`
-    
+
     # Add flags if necessary
     AC_MSG_CHECKING([for midl flags])
     case "$target" in
@@ -985,8 +989,7 @@ case "$SB_PLATFORM" in
     if test "$enable_debug" = "yes"; then
       GCC_COMPILER_FLAGS="$GCC_COMPILER_FLAGS -g -ggdb3 -fno-inline"
     else
-      # Use -Os on linux, better than -O2 according to moz perf tests
-      GCC_COMPILER_FLAGS="$GCC_COMPILER_FLAGS -gstabs+ -Os"
+      GCC_COMPILER_FLAGS="$GCC_COMPILER_FLAGS -gstabs+"
     fi
 
     # We always want to include "mozilla-config.h"
@@ -1224,7 +1227,7 @@ for option in `echo $SB_TAGLIB | sed 's/,/ /g'`; do
 done
 AC_SUBST(SB_TAGLIB)
 
-#	
+#
 # If we're building with SYSTEM_TAGLIB, find it
 #
 
@@ -1393,6 +1396,9 @@ if test "$SB_PLATFORM" = "linux" -a "$enable_libnotify" = "yes"; then
   AC_SUBST(LNTFY_LIBS)
 
   NIGHTINGALE_LIBNOTIFY=1
+  AC_DEFINE(NIGHTINGALE_LIBNOTIFY)
+else
+  NIGHTINGALE_LIBNOTIFY=
 fi
 AC_SUBST(NIGHTINGALE_LIBNOTIFY)
 
